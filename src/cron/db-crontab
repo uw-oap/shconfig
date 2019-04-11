@@ -1,0 +1,8 @@
+# -*- mode: conf -*-
+SHELL=/bin/sh
+MAILTO="{{shconfig_email}}"
+
+15 12 * * * "{{driver_rundir}}/mysql/backup-noon.sh"
+15 20 * * * "{{driver_rundir}}/mysql/backup-each-database.sh"
+00 22 * * * "{{driver_rundir}}/mysql/backup-all-databases.sh"
+

@@ -1,0 +1,13 @@
+var/
+run/
+.vagrant
+.venv
+.dir-locals.el
+build
+env.sh
+vars.json
+ssh_key
+*.pyc
+repos/
+vagrant-*.tgz
+db/

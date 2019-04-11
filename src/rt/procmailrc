@@ -1,0 +1,20 @@
+# -*- mode: conf -*-
+# This is designed to be used like so:
+#
+# aliases file:
+#   eoaa: "|{{shconfig_os_base}}/usr/bin/procmail -m ACTION=correspond QUEUE=eoaa {{rt_procmail_file}}"
+
+PATH="/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:{{shconfig_os_base}}/sbin:{{shconfig_os_base}}/bin:{{shconfig_os_base}}/usr/sbin:{{shconfig_os_base}}/usr/bin"
+LOGFILE="{{rt_procmail_log}}"
+DEFAULT=/dev/null
+
+# Email size very large? Accept
+:0w
+* > 300000
+| {{rt_dir}}/bin/rt-mailgate --queue $QUEUE --action $ACTION --url "https://{{rt_webdomain}}/"
+
+# FIXME put any spam rules here
+
+# Default: Accept
+:0w
+| {{rt_dir}}/bin/rt-mailgate --queue $QUEUE --action $ACTION --url "https://{{rt_webdomain}}/"

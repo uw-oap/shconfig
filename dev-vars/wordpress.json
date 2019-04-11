@@ -1,0 +1,12 @@
+{
+    "webdomain": "wordpress.local",
+    "webroot": "cms",
+    "db_host": "db.local",
+    "db_name": "wp",
+    "dir": "/data/wp",
+    "webroot": "cms",
+    "php_version": "5.6.40",
+    "php_variant": "+default+imap+intl+kerberos+ldap+mysql+opcache+tidy",
+    "repo": "https://path.to/wordpress.git",
+    "repo_branch": "master"
+}

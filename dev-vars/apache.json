@@ -1,0 +1,5 @@
+{
+    "user": "apache",
+    "group": "vagrant",
+    "conf_dir": "/etc/httpd/conf.d"
+}

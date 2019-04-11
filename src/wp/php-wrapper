@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec "{{php_dir}}/php/wp-{{wordpress_php_version}}/bin/php-cgi"

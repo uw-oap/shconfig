@@ -1,0 +1,5 @@
+{
+    "cnf_file": "/etc/my.cnf.d/shconfig.cnf",
+    "backup_excludedbs": "information_schema performance_schema sys",
+    "backup_noon_excludedbs": ""
+}

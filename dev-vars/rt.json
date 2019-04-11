@@ -1,0 +1,12 @@
+{
+    "correspond_address": "rt@support.local",
+    "webdomain": "support.local",
+    "db_host": "db.local",
+    "spam_queue": "spam",
+    "procmail_file": "/data/mailnull/etc/procmailrc",
+    "procmail_log": "/data/mailnull/var/procmail.log",
+    "db_name": "rt",
+    "dir": "/data/rt",
+    "perlversion": "5.28.1",
+    "version": "4.2.15"
+}
