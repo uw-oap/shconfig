@@ -11,3 +11,4 @@ ssh_key
 repos/
 vagrant-*.tgz
 db/
+vars

@@ -39,10 +39,17 @@ function rpm_is_installed {
 function install_local_rpm {
     log_output local1.info "RPM $1 not installed; installing"
 
+    seen_dependencies="$2"
+
     for rpm in $(rpm_dependencies "$1")
     do
-	log_output local1.debug "Checking on dependency $rpm"
-	local_yum $rpm
+	if [[ $seen_dependencies == *"#$rpm#"* ]]
+	then
+	    log_output local1.debug "Already seen $rpm in dependencies; skipping"
+	else
+	    log_output local1.debug "Checking on dependency $rpm for $1"
+	    local_yum $rpm "$seen_dependencies#$1#"
+	fi
     done
 
     log_output local1.debug "Downloading RPM..."
@@ -100,7 +107,7 @@ function force_local_yum {
 	log_output local1.debug "RPM $1 is locally installed"
     else
 	log_output local1.debug "Installing $1"
-	install_local_rpm $1
+	install_local_rpm $1 "$2"
     fi
 }
 
@@ -115,10 +122,10 @@ function local_yum {
 }
 
 function phpbrew_fn {
-    if [ -e "{{shconfig_os_base}}/usr/bin/php" ]
+    if [ -e "{{apconfig_os_base}}/usr/bin/php" ]
     then
 	# we're using a local php to bootstrap. yay
-        "{{shconfig_os_base}}/usr/bin/php" -c "{{driver_rundir}}/php/php.ini" "/data/phpbrew/bin/phpbrew" "$@"
+        "{{apconfig_os_base}}/usr/bin/php" -c "{{driver_rundir}}/php/php.ini" "/data/phpbrew/bin/phpbrew" "$@"
     else
         "{{php_phpbrew}}" "$@"
     fi
@@ -266,4 +273,8 @@ function set_db_restart_needed {
 
 function set_rt_install_needed {
     touch "{{driver_vardir}}/rt-install"
+}
+
+function set_rt_autoassign_install_needed {
+    touch "{{driver_vardir}}/rt-autoassign-install"
 }

@@ -26,6 +26,17 @@ then
 	rm "{{driver_vardir}}/rt-install"
     fi
 
+    if [ -e "{{driver_vardir}}/rt-autoassign-install" ]
+    then
+	log_output local1.info "Installing RT AutoAssign"
+	pushd "{{driver_builddir}}/RT-Extension-AutomaticAssignment" > /dev/null
+	sudo make install
+	popd > /dev/null
+
+	touch "{{driver_vardir}}/httpd-restart"
+	rm "{{driver_vardir}}/rt-autoassign-install"
+    fi
+
     # Make sure apache_user is in apache_group
     sudo usermod -G {{apache_group}} {{apache_user}}
     sudo chown -R {{apache_user}}:{{apache_group}} "{{rt_dir}}/var/log" "{{rt_dir}}/var/mason_data"  "{{rt_dir}}/var/session_data" 

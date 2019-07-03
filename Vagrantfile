@@ -79,6 +79,10 @@ sudo -iu vagrant /data/shconfig/driver.sh
     SHELL
   end
   
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 1024
+  end
+  
   config.vm.define "web" do |web|
     web.vm.box = "centos/7"
     web.vm.network :private_network, ip: "192.168.100.102"
@@ -88,6 +92,7 @@ sudo -iu vagrant /data/shconfig/driver.sh
     web.vm.provision "shell", inline: <<-SHELL
 yum -y install git
 yum -y install python-virtualenv
+yum -y install unzip # for ckeditor
 
       # Apache:
 yum -y install httpd mod_ssl mod_fcgid sendmail

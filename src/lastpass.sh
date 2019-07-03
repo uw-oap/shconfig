@@ -24,12 +24,15 @@ lpass login "$LPASS_USERNAME"
 if [  "$SHCONFIG_ENV_TYPE" == "stg" ]
 then
     # the [4:] is because "stg_" is 4 characters:
-    lpass show -j -x --basic-regexp '^stg_' | jq  '.[] | {(.name[4:]+"_user"): .username, (.name[4:]+"_pass"): .password}' | jq -s add > "{{driver_dir}}/vars/secrets.json"
+    lpass show -j -x --basic-regexp '^stg_' | jq  '.[] | if (.username|length)>0 then {(.name[4:]+"_user"): .username, (.name[4:]+"_pass"): .password} else {} end' | jq -s add > "{{driver_dir}}/vars/secrets.json"
+    lpass show -j -x --basic-regexp '^stg_' | jq  '.[] | if (.username|length)==0 then {(.name[4:]): .note} else {} end' | jq -s add > "{{driver_dir}}/vars/secretnotes.json"
+    
 
 elif [ "$SHCONFIG_ENV_TYPE" == "prd" ]
 then
     # the [5:] is because "prod_" is 5 characters
-    lpass show -j -x --basic-regexp '^prod_' | jq  '.[] | {(.name[5:]+"_user"): .username, (.name[5:]+"_pass"): .password}' | jq -s add > "{{driver_dir}}/vars/secrets.json"
+    lpass show -j -x --basic-regexp '^prod_' | jq  '.[] | if (.username|length)>0 then {(.name[5:]+"_user"): .username, (.name[5:]+"_pass"): .password} else {} end' | jq -s add > "{{driver_dir}}/vars/secrets.json"
+    lpass show -j -x --basic-regexp '^prod_' | jq  '.[] | if (.username|length)==0 then {(.name[5:]): .note} else {} end' | jq -s add > "{{driver_dir}}/vars/secretnotes.json"
 
 else
     log_output local1.warning "lastpass only creates a file when SHCONFIG_ENV_TYPE is 'stg' or 'prd'"

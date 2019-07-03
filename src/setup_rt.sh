@@ -61,10 +61,13 @@ then
 	log_output local1.info "Installing Perl from source..."
 	perlbrew install --as $RT_PERL_NAME perl-{{rt_perlversion}}
     fi
+fi
 
-    # This makes sure cpanm installs to the correct Perl:
-    perlbrew use $RT_PERL_NAME
+# This makes sure cpanm installs to the correct Perl:
+perlbrew use $RT_PERL_NAME
 
+if [ -e "{{driver_vardir}}/rt-install" ]
+then
     log_output local1.debug "Checking on RT build dependencies"
 
     local_yum expat-devel
@@ -112,6 +115,48 @@ then
     popd > /dev/null
     # -- POPD ^^
 fi # if rt is not installed already
+
+# TODO maybe bail at this point and require that RT be installed before continuing??
+
+# FIXME this requires driver being run *twice* to happen.
+# Maybe this should be in the `local` directory intsead of the `share` directory?
+if [ -e "{{rt_dir}}/share/static/RichText" ]
+then
+    if ! grep "4.11.3" "{{rt_dir}}/share/static/RichText/ckeditor.js" > /dev/null
+    then
+	pushd "{{driver_builddir}}" >/dev/null
+	rm -rf ckeditor
+	curl -O https://download.cksource.com/CKEditor/CKEditor/CKEditor%204.11.3/ckeditor_4.11.3_standard.zip
+	unzip ckeditor_4.11.3_standard.zip
+	mv "{{rt_dir}}/share/static/RichText" "$(mktemp -u {{rt_dir}}/share/static/RichText-$(date +%Y%m%d)-XXX)"
+	rsync -az ckeditor/ "{{rt_dir}}/share/static/RichText/"
+	chgrp -R "{{apache_group}}" "{{rt_dir}}/share/static/RichText/"
+	popd > /dev/null
+    fi
+fi
+
+# if RT is installed already...
+if [ -e "{{rt_dir}}/bin/rt" ]
+then
+    if ! [ -e "{{rt_dir}}/local/plugins/RT-Extension-AutomaticAssignment" ]
+    then
+	log_output local1.debug "Need to install RT::Extension::AutomaticAssignment"
+	set_rt_autoassign_install_needed
+	cpanm -q --showdeps RT::Extension::AutomaticAssignment | xargs cpanm
+	cpanm Module::Install
+	cpanm Business::Hours
+	EXTENSION_PATH=$(echo 'pwd' | cpanm -q --look RT::Extension::AutomaticAssignment)
+	EXTENSION_DIR="RT-Extension-AutomaticAssignment"
+	if ! [ -e "{{driver_builddir}}/$EXTENSION_DIR" ]
+	then
+	    mv "$EXTENSION_PATH" "{{driver_builddir}}/$EXTENSION_DIR"
+	fi
+	pushd "{{driver_builddir}}/$EXTENSION_DIR"
+	RTHOME="{{rt_dir}}" perl Makefile.PL
+	make
+	popd
+    fi
+fi
 
 log_output local1.debug "Checking on procmail..."
 local_yum procmail

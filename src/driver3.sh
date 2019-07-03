@@ -120,6 +120,17 @@ else
 	log_output local1.info "Once this is done; please run the below to remove this message:"
 	log_output local1.info "  rm '{{driver_vardir}}/rt-install'"
     fi
+    if [ -e "{{driver_vardir}}/rt-autoassign-install" ]
+    then
+	log_output local1.info "Please install RT autoassignment:"
+	log_output local1.info "  cd '{{driver_builddir}}/RT-Extension-AutomaticAssignment' && sudo make install"
+	log_output local1.info ""
+	log_output local1.info "After the above, restart the web server."
+	log_output local1.info ""
+	log_output local1.info "Once this is done; please run the below to remove this message:"
+	log_output local1.info "  rm '{{driver_vardir}}/rt-autoassign-install"
+    fi
+	
     if [ -e "{{driver_vardir}}/httpd-restart" ]
     then
 	log_output local1.info "Please reload httpd; then please run the below to remove this message:"
@@ -132,3 +143,6 @@ else
 	log_output local1.info "  rm '{{driver_vardir}}/mariadb-restart'"
     fi
 fi
+
+log_output local1.debug "Everything's complete."
+

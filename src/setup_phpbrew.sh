@@ -39,5 +39,9 @@ then
     phpbrew_fn init
 fi
 
-
 source "{{php_dir}}/bashrc"
+
+# TODO ideally this check would only be done on exception
+log_output local1.debug "Checking for phpbrew updates..."
+# Make sure we have all known versions:
+phpbrew_fn update >/dev/null
