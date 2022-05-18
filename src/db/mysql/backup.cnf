@@ -1,0 +1,4 @@
+[client]
+user = {{secrets_backup_db_user}}
+password = "{{secrets_backup_db_pass}}"
+host = localhost

@@ -17,7 +17,8 @@ then
 fi
 
 log_output local1.debug "Making sure driver virtualenv exists"
-export VIRTUALENV_ROOT=/data/virtualenv
+# TODO make /data/virtualenv not be hard-coded
+export VIRTUALENV_ROOT="/data/virtualenv"
 if ! [ -e "$VIRTUALENV_ROOT" ]
 then
     # build a minimal perl in /opt/perl5

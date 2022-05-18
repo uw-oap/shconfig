@@ -1,7 +1,0 @@
-# -*- mode: conf -*-
-SHELL=/bin/sh
-MAILTO="{{shconfig_email}}"
-
-# RT:
-30 * * * * "{{rt_dir}}/sbin/rt-fulltext-indexer"
-0 7 * * * "{{rt_dir}}/sbin/rt-clean-sessions --older 7d"

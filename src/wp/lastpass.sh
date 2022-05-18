@@ -1,0 +1,1 @@
+../general/lastpass.sh

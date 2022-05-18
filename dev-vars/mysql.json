@@ -1,5 +1,9 @@
 {
     "cnf_file": "/etc/my.cnf.d/shconfig.cnf",
-    "backup_excludedbs": "information_schema performance_schema sys",
-    "backup_noon_excludedbs": ""
+    "backup_excludedbs": "test information_schema performance_schema sys",
+    "backup_noon_excludedbs": "test information_schema performance_schema sys",
+    "cacert_path": "/vagrant_data/ssl/dev-rootCA.pem",
+    "sslcert_path": "/etc/ssl/certs/db.pem",
+    "sslkey_path": "/etc/ssl/certs/db.key",
+    "domains": ["FIXME"]
 }

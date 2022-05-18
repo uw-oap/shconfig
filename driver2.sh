@@ -46,13 +46,19 @@ fi
 
 if [ -z "$SHCONFIG_EMAIL" ]
 then
-    log_output local1.error "SHCONFIG_EMAIL not set; set to email address for cron jobs"
+    log_output local1.error "SHCONFIG_EMAIL not set; set to email address for non-cron jobs"
     exit 1
 fi
 
-if [ -z "$SHCONFIG_DBSERVER" -o -z "$SHCONFIG_WEBSERVER" ]
+if [ -z "$SHCONFIG_CRONEMAIL" ]
 then
-    log_output local1.error "SHCONFIG_DBSERVER and SHCONFIG_WEBSERVER must be set"
+    log_output local1.error "SHCONFIG_CRONEMAIL not set; set to email address for cron jobs"
+    exit 1
+fi
+
+if [ -z "$SHCONFIG_DBSERVER" -o -z "$SHCONFIG_WEBSERVER" -o -z "$SHCONFIG_WPSERVER" ]
+then
+    log_output local1.error "SHCONFIG_DBSERVER, SHCONFIG_WEBSERVER, and SHCONFIG_WPSERVER must be set"
     exit 1
 fi
 
@@ -63,10 +69,9 @@ else
     export DRIVER_IMAGEDIR="$DRIVER_DIR/image/unknown"
 fi
 
-export DRIVER_PHPBUILDOPTIONS="--with-libdir=lib64 --with-mcrypt='$SHCONFIG_OS_BASE/usr' --with-tidy='$SHCONFIG_OS_BASE/usr' --without-libzip"
+export DRIVER_PHPBUILDOPTIONS="--with-libdir=lib64 --with-mcrypt='$SHCONFIG_OS_BASE/usr' --with-tidy='$SHCONFIG_OS_BASE/usr' --without-libzip --with-sodium='$SHCONFIG_OS_BASE/usr' --with-gd"
 
-
-if [ "$SHCONFIG_APP_TYPE" != "web" -a "$SHCONFIG_APP_TYPE" != "db" ]
+if [ "$SHCONFIG_APP_TYPE" != "web" -a "$SHCONFIG_APP_TYPE" != "db" -a "$SHCONFIG_APP_TYPE" != "wp" ]
 then
     log_output local1.error "SHCONFIG_APP_TYPE not set to 'web' or 'db'; exiting"
     exit 1
@@ -102,8 +107,10 @@ cat > vars/shconfig.json <<EOF
   "env_type": "$SHCONFIG_ENV_TYPE",
   "os_base": "$SHCONFIG_OS_BASE",
   "email": "$SHCONFIG_EMAIL",
+  "cronemail": "$SHCONFIG_CRONEMAIL",
   "dbserver": "$SHCONFIG_DBSERVER",
-  "webserver": "$SHCONFIG_WEBSERVER"
+  "webserver": "$SHCONFIG_WEBSERVER",
+  "wpserver": "$SHCONFIG_WPSERVER"
 }
 EOF
 
@@ -128,7 +135,7 @@ EOF
 if [ -n "$FORCE_LASTPASS" -o \( -z "$SKIP_LASTPASS" -a "$SHCONFIG_ENV_TYPE" != "dev" \) ]
 then
     # several scripts needed such as shared_functions2.sh, so compile everything that can compile:
-    python bin/compile_scripts.py --ignore-undefined src/ vars/ run/
+    python bin/compile_scripts.py --ignore-undefined "src/$SHCONFIG_APP_TYPE/" vars/ run/
     . run/lastpass.sh
 fi
 
@@ -137,7 +144,7 @@ fi
 ######################################################
 
 install -m 0700 -d run
-python bin/compile_scripts.py src/ vars/ run/
+python bin/compile_scripts.py "src/$SHCONFIG_APP_TYPE/" vars/ run/
 
 find run/ -name '*.sh' -exec chmod u+x {} \;
 

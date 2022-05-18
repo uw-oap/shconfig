@@ -1,4 +1,6 @@
 {
     "dir": "/data/phpbrew",
-    "phpbrew": "/data/phpbrew/bin/phpbrew"
+    "phpbrew": "/data/phpbrew/bin/phpbrew",
+    "php_version": "7.3.29",
+    "php_variant": "+default"
 }

@@ -124,7 +124,7 @@ if __name__ == "__main__":
     if not os.path.exists(args.dest):
         os.mkdir(args.dest)
 
-    for root, subFolders, files in os.walk(args.source):
+    for root, subFolders, files in os.walk(args.source, followlinks=True):
         for folder in subFolders:
             full_path = os.path.join(root, folder)
             dest_path = full_path.replace(args.source, args.dest)

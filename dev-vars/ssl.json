@@ -7,5 +7,7 @@
     "portal_cert_path": "/etc/pki/tls/certs/localhost.crt",
     "portal_key_path": "/etc/pki/tls/private/localhost.key",
     "wordpress_cert_path": "/etc/pki/tls/certs/localhost.crt",
-    "wordpress_key_path": "/etc/pki/tls/private/localhost.key"
+    "wordpress_key_path": "/etc/pki/tls/private/localhost.key",
+    "lux_cert_path": "/etc/pki/tls/certs/localhost.crt",
+    "lux_key_path": "/etc/pki/tls/private/localhost.key"
 }

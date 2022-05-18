@@ -1,5 +1,7 @@
 {
     "user": "apache",
     "group": "vagrant",
-    "conf_dir": "/etc/httpd/conf.d"
+    "conf_dir": "/etc/httpd/conf.d",
+    "apxs": "/usr/bin/apxs",
+    "module_dir": "/data/httpd_modules"
 }

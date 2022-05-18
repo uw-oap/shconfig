@@ -1,5 +1,0 @@
-127.0.0.1	vagrantweb.local	vagrantweb
-127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
-::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
-192.168.100.101    {{shconfig_dbserver}}
-192.168.100.102	   {{shconfig_webserver}} {{rt_webdomain}} {{wordpress_webdomain}} {{portal_webdomain}} {{prime_webdomain}}

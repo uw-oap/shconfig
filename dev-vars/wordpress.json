@@ -1,12 +1,13 @@
 {
     "webdomain": "wordpress.local",
+    "shib_group": "none",
+    "webaliases": [],
     "webroot": "cms",
     "db_host": "db.local",
-    "db_name": "wp",
+    "db_name": "wordpress",
     "dir": "/data/wp",
     "webroot": "cms",
-    "php_version": "5.6.40",
-    "php_variant": "+default+imap+intl+kerberos+ldap+mysql+opcache+tidy",
-    "repo": "https://path.to/wordpress.git",
-    "repo_branch": "master"
+    "repo": "http://path/to/repo.git",
+    "repo_branch": "main",
+    "google_tracking_id": ""
 }

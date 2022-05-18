@@ -10,5 +10,6 @@ ssh_key
 *.pyc
 repos/
 vagrant-*.tgz
-db/
 vars
+ssh_key.pub
+/db
