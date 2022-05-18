@@ -31,54 +31,78 @@ Additionally, this project was designed so that you don't have to be root to run
 
 # Development quick start
 
-1. Install Vagrant including NFS support.
+1. Install Oracle VirtualBox. If you have never done this before, you may also have to change your computer's BIOS settings to allow virtualization.
 
-2. Clone your shconfig repo.
+2. Install Vagrant including NFS support.
 
-3. If you would like, create SSH keys. Add the public key as an access key for each managed project as listed above. Put the private key in the shconfig directory as `ssh_key`.
+	- For OS X this means:
 
-4. If you would like, create a subdirectory called `repos`, and put each code repository into it. (If this directory doesn't exist, the code will be checked out using the ssh_key directly into the Vagrant machine.) For example:
+		- Install Vagrant
+		- In System Preferences -> Security -> Privacy, give "/sbin/nfsd" `Full Disk Access`
+
+     _Note: as of Dec 2019, Vagrant on OS X does not properly escape the NFS mountpoints on the host machine if the mountpoints have spaces in them. You may be able to fix this by editing /etc/exports manually, or by changing your directory to one that doesn't have spaces in it._
+
+	- For Windows this means:
+
+	    - Install Vagrant
+	    - Install vagrant-winnfsd via vagrant plugin install vagrant-winnfsd
+        - Give your Windows account access to create symlinks. On Windows 10 you do this via
+            - Run "Edit Group Policy" as administrator
+		    - Go to Computer Configuration > Windows Settings > Security Settings > Local Policies > User Rights Assignment
+		    - Add your user to the "Create symbolic links" permission
+		    - Log out and back in so you have the permission
+  
+    - _Note: as of 2021, Vagrant's "vagrant-vbguest" plugin is not compatible with the CentOS 7 image we use. Please uninstall this plugin via `vagrant plugin uninstall vagrant-vbguest` if it is installed (or figure out how to fix this!)._
+    - _Note: if SSH isn't working, you may need to specify the SSH client manually._
+    - _Note: if NFS isn't working (as evidenced by `cd /vagrant_data` hanging), you may need to specify `config.winnfsd.host_ip = "10.0.2.2"` or `config.winnfsd.host_ip = "192.168.56.1"` in `Vagrantfile`_
+  
+3. Clone this project per https://github.com/uw-oap/shconfig, e.g. 
+
+        git clone git@github.com:uw-oap/shconfig.git
+
+4. Create SSH keys:
+
+        ssh-keygen
+        cp ~/.ssh/id_rsa path/to/shconfig/ssh_key
+        cp ~/.ssh/id_rsa.pub path/to/shconfig/ssh_key.pub
+
+   Then go to https://github.com/settings/keys and add a new SSH key. Paste in the ssh_key.pub content. Then go back to https://github.com/settings/keys and click "enable SSO"
+   
+4. If you would like, create SSH keys. Add the public key as an access key for each managed project as listed above. Put the private key in the shconfig directory as `ssh_key`.
+
+5. If you would like, create a subdirectory called `repos`, and put each code repository into it. (If this directory doesn't exist, the code will be checked out using the ssh_key directly into the Vagrant machine.) For example:
 
         mkdir repos
 		cd repos
-		git clone https://path@to.repo/
+		git clone FIXME
 
-5. If you would like Vagrant to populate the database for you when the Vagrant machines are created, create a subdirectory called `db` and put a file named `<<dbname>>.sql` in it for each database you want to create. These can be any database name you like; a database will be created with whatever name is before `.sql` e.g. `mydb.sql` will create a database `mydb`. For example:
+6. If you would like Vagrant to populate the database for you when the Vagrant machines are created, create a subdirectory called `db` and put a file named `<<dbname>>.sql` in it for each database you want to create. These can be any database name you like; a database will be created with whatever name is before `.sql` e.g. `mydb.sql` will create a database `mydb`. **Note: you may want to refresh these if it's been a while since the last Vagrant deployment.** For example:
 
         mkdir db
 		cd db
-		<<put wp.sql here>>
+		<<put FIXME.sql here>>
 
-6. The build process can take a long time, primarily because it will download and extract many RPMs, compile Perl, install many Perl modules, and compile multiple copies of PHP. If you have a tarball you would like Vagrant to explode for you to speed up this build process[^1], put it into shconfig with the name `vagrant-db.tgz` and/or `vagrant-web.tgz`. These files can save time in the build process.
+As of December 2019, you can now prepend a number to these files to ensure SQL files are imported in order. Anything prior to a hyphen gets stripped out of the name when figuring out the database name. For example, you can name your file `01-wordpress.sql` to ensure it's imported before another file.
 
-7. To double-check, at this point you have potentially created:
+7. The build process can take a long time, primarily because it will download and extract many RPMs, compile Perl, install many Perl modules, and compile multiple copies of PHP. If you have a tarball you would like Vagrant to explode for you to speed up this build process[^1], put it into shconfig with the name `vagrant-db.tgz` and/or `vagrant-web.tgz`. These files can save time in the build process.
 
-        shconfig/ (git repository)
-		shconfig/repos/apweb-source/
-		shconfig/repos/catalyst-source/
-		shconfig/repos/portal-source/
-		shconfig/repos/prime-source/		s
-		shconfig/db/wp.sql
-	    shconfig/ssh_key
-		shconfig/vagrant-db.tgz
-		shconfig/vagrant-web.tgz
+8. `vagrant up`. Ideally this completes without error.
 
-7. `vagrant up`. Ideally this completes without error.
+9. On your machine, add the contents of `/data/shconfig/run/dev/hosts` to your machine's `/etc/hosts` equivalent. It will probably be this:
 
-8. On your machine, add the contents of `/data/shconfig/run/dev/hosts` to your machine's `/etc/hosts` equivalent. It will probably be this:
-
-        192.168.100.101 db.local
-		192.168.100.102	web.local wp.local rt.local
+        192.168.56.101 db.local
+		192.168.56.102	web.local support.local
+	    192.168.56.103 wp.local wordpress.local
 
 Expected results:
-* You can go to http://wp.local and see WordPress running
-* You can go to http://rt.local and see Request Tracker running
-* You log in via HTTP BASIC auth; Vagrant loads with a couple of users; passwords can be set via
+- You can go to http://support.local and see RT running
+- You can go to http://wordpress.local and see WordPress running
+- You log in via HTTP BASIC auth; Vagrant loads with a couple of users; passwords can be set via
 
         vagrant ssh web
 		htpasswd -b /etc/httpd/conf.d/passwords username password
 
-* You can connect as a root database user[^2] to the database on db.local.
+- You can connect as a root database user[^2] to the database on db.local.
 
 [^1]: These tarballs can be built like this, using an existing working Vagrant instance:
 
@@ -86,6 +110,8 @@ Expected results:
 	    tar czvf /vagrant_data/vagrant-web.tgz /data/perlbrew /data/phpbrew /data/rt
 
 [^2]: this access is controlled in several different places right now, prinicpally `src/dev/dev_db_grants.sql`, `src/mysql/sync_users.sql`, and `dev-vars/secrets.json`.
+
+
 
 
 # How this project works
@@ -172,17 +198,6 @@ Special files:
 * The file `driver.json` is built by `driver.sh`.
 * The file `secrets.json` is built by `lastpass.sh`.
 
-# AP machine configuration
-
-## Servers
-	
-- `apprdweb2`
-- `apprddb2`
-- `apstgweb2`
-- `apstgdb2`
-
-If shconfig encounters machines named the above, it will set the app and env types appropriately.
-
 ## Key directories
 
 Using AP typical setup as defined in `vars/`, you'll see:
@@ -224,3 +239,35 @@ shconfig will wipe changed files from deployment directories after backing them 
 
     tar -C / -xvf <<tarball-name>>
 
+
+# FAQ
+
+## Q. Why isn't vagrant starting Apache?
+
+This could be a selinux issue. Try running:
+
+    sudo setenforce 0
+	sudo service httpd restart
+
+## Q. How do I keep vagrant from using a ton of CPU?
+
+Try halting your VMs, going to their VirtualBox settings, and going to System > Acceleration and turning off "enable nested paging."
+## Q. How do I get a new version of PHP?
+
+Set `FORCE_PHPBREW_UPDATE` to 1.
+
+## Q. How can I increase the disk size of a VM?
+
+https://askubuntu.com/a/1015068
+
+    vagrant plugin install vagrant-disksize
+
+and then add to the config
+
+    db.disksize.size = '100GB'
+
+Then in the VM:
+
+    sudo yum install -y cloud-utils-growpart
+    sudo growpart /dev/sda 1
+    sudo xfs_growfs /
