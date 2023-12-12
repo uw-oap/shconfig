@@ -16,15 +16,9 @@ RT_PERL_NAME="perl-{{rt_perlversion}}-rt{{rt_version}}"
 log_output local1.debug "Making sure perlbrew is installed..."
 if ! [ -e "{{perlbrew_dir}}/bin/perlbrew" ]
 then
-    if ! rpm -q perl
-    then
-	log_output local1.crit "Perl not installed; can't build perlbrew"
-	exit 1
-    fi
-    
     log_output local1.debug "Making sure perlbrew is installed"
     install -CD -o {{driver_user}} -g {{driver_group}} -m 0755 -d "{{perlbrew_dir}}"
-    ./install_perlbrew.sh
+    ./rt/install_perlbrew.sh
 fi
 
 # This defines `perlbrew` as a bash function:
@@ -52,12 +46,6 @@ then
 
     if ! [ -e "{{perlbrew_dir}}/perls/$RT_PERL_NAME/bin/perl" ]
     then
-	log_output local1.debug "Need to build Perl"
-	if ! rpm -q install patch gcc
-	then
-	    log_output local1.crit "install, patch, gcc need to be installed"
-	fi
-
 	log_output local1.info "Installing Perl from source..."
 	perlbrew install --as $RT_PERL_NAME perl-{{rt_perlversion}}
     fi
@@ -70,9 +58,9 @@ if [ -e "{{driver_vardir}}/rt-install" ]
 then
     log_output local1.debug "Checking on RT build dependencies"
 
-    local_yum expat-devel
-    local_yum openssl-devel
-    local_yum mariadb-devel
+    # local_yum expat-devel
+    # local_yum openssl-devel
+    # local_yum mariadb-devel
 
     # cpanm ExtUtils/Manifest.pm
     cpanm Locale::PO
@@ -93,9 +81,9 @@ then
     # deliver mariadb-libs, but mariadb-devel does not play well without
     # mariadb-libs
 
-    export DBD_MYSQL_CONFIG="{{driver_rundir}}/mysql/mysql_config.sh"
-    force_local_yum mariadb-libs
-    force_local_yum mariadb-devel
+    # export DBD_MYSQL_CONFIG="{{driver_rundir}}/mysql/mysql_config.sh"
+    # force_local_yum mariadb-libs
+    # force_local_yum mariadb-devel
     cpanm DBD::mysql
 
     mkdir -p "{{driver_builddir}}"
@@ -109,15 +97,21 @@ then
 	tar xzvf rt-{{rt_version}}.tar.gz
     fi
 
-    # 2020-06-30: GnuPG::Interface 1.00 requires gpg 2.2+
-    # so force install the old version
-    cpanm GnuPG::Interface@0.52
-
     cd rt-{{rt_version}}
     log_output local1.info "Configuring RT"
     export PERL="$(which perl)"
-    ./configure --prefix={{rt_dir}} --with-my-user-group --with-web-user={{apache_user}} --with-web-group={{apache_group}} --libdir=/os/base/usr/lib64
+    ./configure  --disable-gpg --prefix={{rt_dir}} --with-my-user-group --with-web-user={{apache_user}} --with-web-group={{apache_group}} --libdir=/os/base/usr/lib64
     RT_FIX_DEPS_CMD=cpanm make fixdeps
+    if [ ! -e "etc/schema.mysql.bak" ]
+    then
+	perl -i.bak -pe 's|\bGroups\b|`Groups`|g' etc/schema.mysql
+    fi
+    if [ ! -e "lib/RT/Principal.pm.bak" ]
+    then
+	perl -i.bak -pe 's|Groups, Principals|`Groups`, Principals|' lib/RT/Principal.pm
+    fi
+    patch_if_needed "{{driver_rundir}}/rt/LoadFromSQL.patch"
+    patch_if_needed "{{driver_rundir}}/rt/UTF8MB4.patch"
 
     popd > /dev/null
     # -- POPD ^^
@@ -147,21 +141,6 @@ then
     fi
 fi
 
-log_output local1.debug "Checking on procmail..."
-local_yum procmail
-
-if ! [ -e "{{shconfig_os_base}}/usr/bin/procmail" ]
-then
-    PROCMAIL_PATH="$(which procmail)"
-    if [ "$PROCMAIL_PATH" == "" ]
-    then
-	log_output local1.crit "Can't find procmail"
-	exit 1
-    fi
-    mkdir -p "{{shconfig_os_base}}/usr/bin"
-    ln -sf "$PROCMAIL_PATH" "{{shconfig_os_base}}/usr/bin/procmail"
-fi
-
 if ! [ -e "{{rt_procmail_file}}" ]
 then
     log_output local1.error "Procmail file {{rt_procmail_file}} does not exist"
@@ -177,15 +156,26 @@ then
     log_output local1.error "Please create it manually using the secret file"
 fi	
 
+if [ -e "{{rt_dir}}/lib/RT/" ]
+then
+    pushd "{{rt_dir}}" > /dev/null
+
+    patch_if_needed "{{driver_rundir}}/rt/LoadFromSQL.patch"
+    patch_if_needed "{{driver_rundir}}/rt/UTF8MB4.patch"
+
+    popd > /dev/null
+fi
+
 ###########################
 # Ensure RT is configured #
 ###########################
 
 log_output local1.debug "Installing RT config files..."
-install -CD -o {{driver_user}} -g {{apache_group}} -d "{{rt_dir}}/etc/"
-install -CD -o {{driver_user}} -g {{apache_group}} -m 0770 -d "{{rt_dir}}/var"
-install -CD -o {{driver_user}} -g {{apache_group}} -m 0770 -d "{{rt_dir}}/var/data/RT-Shredder"
-install -CD -o {{driver_user}} -g {{apache_group}} -m 0750 -d "{{rt_dir}}/var/attachments"
-install -C -o {{driver_user}} -g {{apache_group}} -m 0440 rt/RT_SiteConfig.pm "{{rt_dir}}/etc/RT_SiteConfig.pm"
-install -CD -o {{driver_user}} -g {{apache_group}} -m 0444 rt/ckeditor_config.js "{{rt_dir}}/local/static/RichText/config.js"
+install_apache -CD -d "{{rt_dir}}/etc/"
+install_apache -CD -m 0770 -d "{{rt_dir}}/var"
+install_apache -CD -m 0770 -d "{{rt_dir}}/var/data/RT-Shredder"
+install_apache -CD -m 0750 -d "{{rt_dir}}/var/attachments"
+install_apache -C -o {{driver_user}} -g {{apache_group}} -m 0440 rt/RT_SiteConfig.pm "{{rt_dir}}/etc/RT_SiteConfig.pm"
+install_apache -CD -o {{driver_user}} -g {{apache_group}} -m 0444 rt/ckeditor_config.js "{{rt_dir}}/local/static/RichText/config.js"
 install -C -m 0700 rt/shred.sh "{{driver_bindir}}/rt-shred.sh"
+install -C -m 0400 rt/acl.mysql "{{rt_dir}}/etc/acl.mysql"

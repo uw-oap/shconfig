@@ -1,140 +1,12 @@
 . ../shared_functions.sh
 
-function rpm_dependencies {
-    RPM_DEPENDENCIES="$(yum deplist --config="{{driver_rundir}}/os/yum.conf" --enablerepo=epel $1 | perl -lne 'print $1 if /provider: (\S+?)(\.x86_64|\.i686|\.noarch)?\s/i' | sort | uniq)"
-    echo "$RPM_DEPENDENCIES"
-}
+function file_md5_equal {
+    FILE_A=$1
+    FILE_B=$2
 
-function rpm_is_locally_installed {
-    LAST_FILE="$(repoquery --archlist=x86_64 --config="{{driver_rundir}}/os/yum.conf" --enablerepo=epel -l $1 2>/dev/null | tail -1)"
-    if [ -z "$LAST_FILE" ]
-    then
-	LAST_FILE="$(repoquery --config="{{driver_rundir}}/os/yum.conf" --enablerepo=epel -l $1 | head -1)"
-    fi
-    if [ -z "$LAST_FILE" ]
-    then
-	log_output local1.crit "Could not repoquery $1"
-	exit 1
-    fi
-       
-    if [ -e "{{shconfig_os_base}}/$LAST_FILE" ]
-    then
-	return 0
-    else
-	return 1
-    fi
-}
-
-function rpm_is_installed {
-    # TODO x86_64 hardcoded:
-    if rpm -q "$1" > /dev/null
-    then
-	return 0
-    else
-	rpm_is_locally_installed $1
-   fi
-}
-
-
-function install_local_rpm {
-    log_output local1.info "RPM $1 not installed; installing"
-
-    seen_dependencies="$2"
-
-    for rpm in $(rpm_dependencies "$1")
-    do
-	if [[ $seen_dependencies == *"#$rpm#"* ]]
-	then
-	    log_output local1.debug "Already seen $rpm in dependencies; skipping"
-	else
-	    log_output local1.debug "Checking on dependency $rpm for $1"
-	    local_yum $rpm "$seen_dependencies#$1#"
-	fi
-    done
-
-    log_output local1.debug "Downloading RPM..."
-    pushd "{{driver_builddir}}" >/dev/null
-
-    # Need $1-*.rpm to evaluate to nothing
-    shopt -s nullglob > /dev/null
-    rm -f $1-*.rpm
-
-    yumdownloader --arch=x86_64 -x \*i686 --config="{{driver_rundir}}/os/yum.conf" --enablerepo=epel $1
-
-    # This reads through the RPMs to make sure the RPM name is the same:
-    for i in *.rpm
-    do
-        RPM_NAME=$(rpm -qp $i --qf "%{NAME}")
-        if [ "$RPM_NAME" == "$1" ]
-        then
-            PACKAGE=$i
-        fi
-    done
-
-    # 2019-12-26: commenting the below out because PACKAGE should be
-    # figured out above.
-    #
-    # PACKAGE=$1-*.rpm
-    if [ -z "$PACKAGE" ]
-    then
-	log_output local1.crit "Could not download RPM $1; exiting"
-	exit 1
-    fi
-    log_output local1.debug "Extracting RPM to {{shconfig_os_base}}..."
-    mkdir -p "{{shconfig_os_base}}"
-    rpm2cpio $PACKAGE | ( cd "{{shconfig_os_base}}" && cpio -idmv )
-
-    if [ "$1" == "mariadb-devel" ]
-    then
-        log_output local1.debug "Building mysql_config for mariadb-devel"
-        mkdir -p "{{shconfig_os_base}}/usr/bin"
-        cp "{{shconfig_os_base}}/usr/lib64/mysql/mysql_config" "{{shconfig_os_base}}/usr/bin/"
-    fi
-
-    popd >/dev/null
-
-    shopt nullglob > /dev/null
-
-    if ! rpm_is_locally_installed $1
-    then
-	log_output local1.crit "Could not install RPM $1; exiting"
-	exit 1
-    fi
-
-}
-
-function force_local_yum {
-    log_output local1.debug "Checking for local RPM $1"
-    if rpm_is_locally_installed $1
-    then
-	log_output local1.debug "RPM $1 is locally installed"
-    else
-	log_output local1.debug "Installing $1"
-	install_local_rpm $1 "$2"
-    fi
-}
-
-function local_yum {
-    log_output local1.debug "local_yum for $1"
-    if rpm_is_installed $1
-    then
-	log_output local1.debug "RPM $1 is installed"
-    else
-	install_local_rpm $1 "$2"
-    fi
-}
-
-function phpbrew_fn {
-    if [ -e "{{php_dir}}/php/phpbrew-{{php_php_version}}/bin/php" ]
-    then
-	"{{php_dir}}/php/phpbrew-{{php_php_version}}/bin/php" "{{php_dir}}/bin/phpbrew" "$@"
-    elif [ -e "{{shconfig_os_base}}/usr/bin/php" ]
-    then
-	# we're using a local php to bootstrap. yay
-        "{{shconfig_os_base}}/usr/bin/php" -c "{{driver_rundir}}/php/php.ini" "{{php_dir}}/bin/phpbrew" "$@"
-    else
-        "{{php_phpbrew}}" "$@"
-    fi
+    FILE_A_MD5SUM=$(md5sum "$FILE_A" | cut -d' ' -f1)
+    FILE_B_MD5SUM=$(md5sum "$FILE_B" | cut -d' ' -f1)
+    [ "$FILE_A_MD5SUM" == "$FILE_B_MD5SUM" ]
 }
 
 function install_git_repo {
@@ -256,7 +128,7 @@ function install_git_repo {
 
 	if [ -n "{{secrets_slack_webhook_pass}}" ]
 	then
-	    curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"Deployed $REPO_NAME update to $(hostname)\"}" "{{secrets_slack_webhook_pass}}"
+	    curl -X POST -s -H 'Content-type: application/json' --data "{\"text\":\"Deployed $REPO_NAME update to $(hostname)\"}" "{{secrets_slack_webhook_pass}}" > /dev/null
 	fi
 	rm "{{driver_vardir}}/$REPO_NAME-update"
     else
@@ -265,23 +137,46 @@ function install_git_repo {
 }
 
 
-function file_md5_equal {
-    FILE_A=$1
-    FILE_B=$2
-
-    FILE_A_MD5SUM=$(md5sum "$FILE_A" | cut -d' ' -f1)
-    FILE_B_MD5SUM=$(md5sum "$FILE_B" | cut -d' ' -f1)
-    [ "$FILE_A_MD5SUM" == "$FILE_B_MD5SUM" ]
-}
-
-
 function set_web_restart_needed {
     touch "{{driver_vardir}}/httpd-restart"
 }
 
-function set_db_restart_needed {
-    touch "{{driver_vardir}}/mariadb-restart"
+function install_conf {
+    SRC=$1
+    TARGET=$2
+    if [ "x$SRC" == "x" -o "x$TARGET" == "x" ]
+    then
+	log_output local1.crit "Need to pass src and target to install_conf"
+	exit 1
+    fi
+    if [ ! -e "$TARGET" ]
+    then
+	set_web_restart_needed
+    elif ! file_md5_equal "$SRC" "$TARGET"
+    then
+	set_web_restart_needed
+    fi
+    install -CD -m 0444 "$SRC" "$TARGET"
 }
+
+function sudo_install_conf {
+    SRC=$1
+    TARGET=$2
+    if [ "x$SRC" == "x" -o "x$TARGET" == "x" ]
+    then
+	log_output local1.crit "Need to pass src and target to install_conf"
+	exit 1
+    fi
+    if [ ! -e "$TARGET" ]
+    then
+	set_web_restart_needed
+    elif ! file_md5_equal "$SRC" "$TARGET"
+    then
+	set_web_restart_needed
+    fi
+    sudo install -CD -m 0444 "$SRC" "$TARGET"
+}
+
 
 function set_rt_install_needed {
     touch "{{driver_vardir}}/rt-install"
@@ -289,4 +184,36 @@ function set_rt_install_needed {
 
 function set_rt_autoassign_install_needed {
     touch "{{driver_vardir}}/rt-autoassign-install"
+}
+
+function install_apache {
+    if [ "{{shconfig_env_type}}" == "dev" ]
+    then
+	INSTALL_CHOWN=""
+    else
+	INSTALL_CHOWN="-o {{driver_user}} -g {{apache_group}}"
+    fi
+    install $INSTALL_CHOWN "$@"
+}
+
+function install_driver {
+    if [ "{{shconfig_env_type}}" == "dev" ]
+    then
+	INSTALL_CHOWN=""
+    else
+	INSTALL_CHOWN="-o {{driver_user}} -g {{driver_group}}"
+    fi
+    install $INSTALL_CHOWN "$@"
+}
+
+function patch_if_needed {
+    PATCH_FILE="$1"
+
+    # Has the patch been applied yet?
+    if patch -p0 -s -f --dry-run < "$PATCH_FILE" > /dev/null
+    then
+	# No; patch it
+	patch -p0 -s -f < "$PATCH_FILE"
+    fi
+    
 }

@@ -1,7 +1,7 @@
-127.0.0.1	vagrantweb.local	vagrantweb
+127.0.0.1	{{driver_hostname}}.local {{driver_hostname}}
 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
-192.168.56.101    {{shconfig_dbserver}}
-192.168.56.102	   {{shconfig_webserver}} {{rt_webdomain}} {{portal_webdomain}} {{prime_webdomain}}
-192.168.56.103	   {{shconfig_wpserver}} {{wordpress_webdomain}}
+{{dev_dbserver_ip}}    {{shconfig_dbserver}}
+{{dev_webserver_ip}}	   {{shconfig_webserver}} {{rt_webdomain}} {{portal_webdomain}} {{prime_webdomain}} {{lux_webdomain}}
+{{dev_wpserver_ip}}	   {{shconfig_wpserver}} {{wordpress_webdomain}}
 

@@ -10,4 +10,4 @@ if __name__ == "__main__":
     args = parser.parse_args() 
     vars_a_dict = process_vars_dir(args.vars_a)
     for k in sorted(vars_a_dict.keys()):
-        print k
+        print(k)

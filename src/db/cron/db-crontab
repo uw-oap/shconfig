@@ -1,9 +1,7 @@
 # -*- mode: conf -*-
-SHELL=/bin/sh
+SHELL=/bin/bash
 MAILTO="{{shconfig_cronemail}}"
 
-15 12 * * * "{{driver_rundir}}/mysql/backup-noon.sh"
-15 22 * * * "{{driver_rundir}}/mysql/backup-each-database.sh"
-00 23 * * * "{{driver_rundir}}/mysql/backup-all-databases.sh"
-0 8 * * SUN "{{driver_rundir}}/rt/purge_attachments.sh"
-
+# Backups:
+FIXME "{{driver_rundir}}/mysql/backup-noon.sh"
+FIXME "{{driver_rundir}}/mysql/backup-each-database.sh"

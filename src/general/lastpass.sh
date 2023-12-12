@@ -7,15 +7,6 @@ pushd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null
 . ./shared_functions2.sh
 set -e
 
-local_yum jq
-local_yum lastpass-cli
-PATH="$PATH:{{shconfig_os_base}}/usr/bin"
-export LD_LIBRARY_PATH="{{shconfig_os_base}}/usr/lib64"
-# 2019-03-07 jhb: This variable is set with `su2 apis` but not `su2 -
-# apis`. Need to set it explicitly so that either way of running su2
-# will work.
-export XDG_RUNTIME_DIR="$HOME"
-
 # LASTPASS_STEMS represents the lastpass entries to search for that
 # start with this stem. For example, if `stg` is in LASTPASS_STEMS
 # then we want to put any password starting with `stg_` into
@@ -25,11 +16,19 @@ LASTPASS_STEMS=()
 if [ "$SHCONFIG_ENV_TYPE" == "stg" ]
 then
     LASTPASS_STEMS+=("stgall")
-    if [ "$SHCONFIG_APP_TYPE" == "db" -o "$SHCONFIG_APP_TYPE" == "web" ]
+    if [ "$SHCONFIG_APP_TYPE" == "db" ] || [ "$SHCONFIG_APP_TYPE" == "web" ]
     then
 	LASTPASS_STEMS+=("stg")
     fi
-    if [ "$SHCONFIG_APP_TYPE" == "db" -o "$SHCONFIG_APP_TYPE" == "wp" ]
+    if [ "$SHCONFIG_APP_TYPE" == "db" ]
+    then
+	LASTPASS_STEMS+=("stgdb")
+    fi
+    if [ "$SHCONFIG_APP_TYPE" == "web" ]
+    then
+	LASTPASS_STEMS+=("stgweb")
+    fi
+    if [ "$SHCONFIG_APP_TYPE" == "db" ] || [ "$SHCONFIG_APP_TYPE" == "wp" ]
     then
 	LASTPASS_STEMS+=("stgwp")
     fi
@@ -38,11 +37,19 @@ fi
 if [ "$SHCONFIG_ENV_TYPE" == "prd" ]
 then
     LASTPASS_STEMS+=("prodall")
-    if [ "$SHCONFIG_APP_TYPE" == "db" -o "$SHCONFIG_APP_TYPE" == "web" ]
+    if [ "$SHCONFIG_APP_TYPE" == "db" ] || [ "$SHCONFIG_APP_TYPE" == "web" ]
     then
 	LASTPASS_STEMS+=("prod")
     fi
-    if [ "$SHCONFIG_APP_TYPE" == "db" -o "$SHCONFIG_APP_TYPE" == "wp" ]
+    if [ "$SHCONFIG_APP_TYPE" == "db" ]
+    then
+	LASTPASS_STEMS+=("proddb")
+    fi
+    if [ "$SHCONFIG_APP_TYPE" == "web" ]
+    then
+	LASTPASS_STEMS+=("prodweb")
+    fi
+    if [ "$SHCONFIG_APP_TYPE" == "db" ] || [ "$SHCONFIG_APP_TYPE" == "wp" ]
     then
 	LASTPASS_STEMS+=("prodwp")
     fi
@@ -53,14 +60,14 @@ if (( ${{"{#LASTPASS_STEMS[@]}"}} > 0 ))
 then
     mkdir -p ~/.config ~/.local/share
     echo -n "Enter your lastpass username: "
-    read LPASS_USERNAME
+    read -r LPASS_USERNAME
 
     # 2019-02-11: `apis` was not able to use pinentry for some reason
     export LPASS_DISABLE_PINENTRY=1
     lpass login "$LPASS_USERNAME"
 
-    echo "" > "{{driver_dir}}/vars/lastpass-secrets.json"
-    echo "" > "{{driver_dir}}/vars/lastpass-secretnotes.json"
+    echo "{}" > "{{driver_dir}}/vars/lastpass-secrets.json"
+    echo "{}" > "{{driver_dir}}/vars/lastpass-secretnotes.json"
 
     for LASTPASS_STEM in ${LASTPASS_STEMS[@]}
     do

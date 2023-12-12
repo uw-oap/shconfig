@@ -1,4 +1,0 @@
-[client]
-user = {{secrets_rt_db_user}}
-password = "{{secrets_rt_db_pass}}"
-host = localhost

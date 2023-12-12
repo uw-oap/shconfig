@@ -1,11 +1,7 @@
 # -*- mode: conf -*-
-SHELL=/bin/sh
+SHELL=/bin/bash
 MAILTO="{{shconfig_cronemail}}"
 
-# RT:
-30 * * * * "{{rt_dir}}/sbin/rt-fulltext-indexer"
-0 5 * * * "{{rt_dir}}/sbin/rt-clean-sessions" --older 7d
-0 18 * * * "{{rt_dir}}/sbin/rt-externalize-attachments"
-0 9 * * SUN "{{driver_rundir}}/catalyst/delete_rt_attachments.sh"
+FIXME
 
 # deal with EOF

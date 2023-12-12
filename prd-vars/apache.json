@@ -1,0 +1,5 @@
+{
+    "conf_dir": "/data/conf",
+    "group": "webgrp",
+    "user": "nobody"
+}

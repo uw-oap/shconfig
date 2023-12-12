@@ -14,9 +14,10 @@ import argparse
 import json
 import os
 
-from jinja2 import Template, StrictUndefined
+from jinja2 import Template, StrictUndefined, pass_context
 
-if os.environ.has_key('DEBUG') and os.environ['DEBUG']:
+
+if 'DEBUG' in os.environ and os.environ['DEBUG']:
     DEBUG=True
 else:
     DEBUG=False
@@ -45,7 +46,7 @@ def read_json_file(var_path, filename):
         raise Exception("JSON file needs to be a dictionary")
 
     vars_dict = {}
-    for (k, v) in json_vars.iteritems():
+    for (k, v) in json_vars.items():
         vars_dict["{}_{}".format(var_path, k)] = v
     return vars_dict
 
@@ -88,22 +89,34 @@ def process_vars_dir(vars_dir):
     return vars_dict
 
 
-def parse_file(vars_dicts, src, dest, ignore_undefined=False):
+# thanks to https://stackoverflow.com/a/3463669
+@pass_context
+def get_context(c):
+    return c
+
+
+def parse_file(vars_dict, src, dest, ignore_undefined=False):
     """
     Renders filename `src` into `dest` using `vars_dict` as the
     variable names for the template.
     """
-    source_fh = open(src, 'rb')
-    dest_fh = open(dest, 'wb')
+    source_fh = open(src, 'r')
+    dest_fh = open(dest, 'w')
 
     if DEBUG:
-        print "Processing {} into {}".format(source_fh, dest_fh)
+        print(f"Processing {source_fh} into {dest_fh}")
 
     if ignore_undefined:
-        template = Template(source_fh.read())
+        template = Template(
+            source_fh.read())
     else:
-        template = Template(source_fh.read(), undefined=StrictUndefined)
-    applied_template = template.render(vars_dict)
+        template = Template(
+            source_fh.read(),
+            undefined=StrictUndefined)
+    template.globals['context'] = get_context
+    template.globals['callable'] = callable
+
+    applied_template = template.render(**vars_dict)
     dest_fh.write(applied_template)
 
 
@@ -118,7 +131,7 @@ if __name__ == "__main__":
     vars_dict = process_vars_dir(args.vars)
     # Add _env_x for each environment variable:
     vars_dict.update({
-        "{}_{}".format("_env", k): v for k, v in os.environ.iteritems()
+        "{}_{}".format("_env", k): v for k, v in os.environ.items()
         })
 
     if not os.path.exists(args.dest):

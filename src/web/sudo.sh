@@ -1,1 +1,0 @@
-../general/sudo.sh

@@ -1,5 +1,0 @@
-# -*- mode: conf -*-
-SHELL=/bin/sh
-MAILTO="{{shconfig_cronemail}}"
-
-# premature EOF fix

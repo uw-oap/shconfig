@@ -1,0 +1,239 @@
+#+options: ':nil *:t -:t ::t <:t H:3 \n:nil ^:nil arch:headline
+#+options: author:t broken-links:nil c:nil creator:nil
+#+options: d:(not "LOGBOOK") date:t e:t email:nil f:t inline:t
+#+options: num:nil p:nil pri:nil prop:nil stat:t tags:t tasks:t tex:t
+#+options: timestamp:t title:t toc:t todo:t |:t
+#+title: shconfig documentation
+#+language: en
+#+select_tags: export
+#+exclude_tags: noexport
+#+creator: Emacs 28.2 (Org mode 9.6.7)
+#+cite_export:
+
+The purpose of this project is to demonstrate how servers can be configured using bash, lastpass, and podman.
+
+It configures three servers:
+
+  - db :: the database server
+  - web :: web app server
+  - wp :: WordPress/public facing web server
+
+It configures these for three different environments:
+
+  - dev :: Local development environments, using Vagrant
+  - stg :: Staging environment
+  - prd :: Production environment
+
+Servers are configured using:
+
+  - the code in this repository
+  - passwords stored in LastPass that are shared with the person running driver
+  - github repositories
+  - podman containers and podman pods fetched from the GitHub container registry and run via shell scripts
+
+Key technical tools used include:
+
+  - cron
+  - git
+  - GitHub code repositories
+  - JSON configuration files
+  - LastPass
+  - MySQL 8 (on the database server)
+  - podman container registry
+  - Python and Python libraries
+  - Shell scripts and environment variables
+
+* Setting up a development environment
+
+1. Install Oracle VirtualBox. If you have never done this before, you may also have to change your computer's BIOS settings to allow virtualization.
+
+2. Install Vagrant.
+
+3. Clone this project per [[https://github.com/uw-oap/shconfig]], e.g. 
+
+	#+begin_src sh
+        git clone git@github.com:uw-oap/shconfig.git
+	#+end_src
+
+4. Create SSH keys. /Please note: as of Nov 2023, GitHub requires a more secure SSH key, hence the =ed25519= type below./
+
+	#+begin_src sh
+        ssh-keygen -t ed25519
+        cp ~/.ssh/id_ed25519 path/to/shconfig/ssh_key_ed25519
+	#+end_src
+
+   Then go to https://github.com/settings/keys and add a new SSH key. Paste in ~/.ssh/ssh_key_ed25519.pub. Then go back to [[https://github.com/settings/keys]] and click "enable SSO".
+   
+5. Create a subdirectory called =repos=, and put each code repository into it. (If this directory doesn't exist, the code will be checked out using the ssh_key directly into the Vagrant machine.) For example:
+
+	#+begin_src sh
+        mkdir repos
+	cd repos
+	git clone FIXME.git
+	#+end_src
+
+6. If you would like Vagrant to populate the database for you when the Vagrant machines are created, create a subdirectory called =db= and put a file named =<<dbname>>.sql= in it for each database you want to create. These can be any database name you like; a database will be created with whatever name is before =.sql= e.g. =mydb.sql= will create a database =mydb=.
+
+   For example:
+
+	#+begin_src sh
+mkdir db
+cd db
+# <<put db1.sql here>>
+# <<put db2.sql here>>
+# <<put db3.sql here>>
+#+end_src
+
+As of December 2019, you can now prepend a number to these files to ensure SQL files are imported in order. Anything prior to a hyphen gets stripped out of the name when figuring out the database name. For example, you can name your file =01-db4.sql= to ensure it's imported before another file.
+
+7. To double-check, at this point you have potentially created:
+
+: shconfig/ (git repository)
+:    shconfig/repos/FIXME/
+:     shconfig/db/db1.sql
+: shconfig/ssh_key_ed25519
+
+9. =vagrant up=. Ideally this completes without error.
+
+10. On your machine, add the contents of =/data/shconfig/run/dev/hosts= to your machine's =/etc/hosts= equivalent. It will probably be this:
+
+: 192.168.100.101 db.local
+: 192.168.100.102 web.local
+: 192.168.100.103 wp.local
+
+
+* Common development tasks
+** Updating pod images to GitHub container registry
+:PROPERTIES:
+:CUSTOM_ID: update_image
+:END:
+
+Log into the development machine. Ensure shconfig is updated. Then run upload_image:
+
+# FIXME
+
+    #+begin_src sh
+cd /data/shconfig
+DEBUG=1 ./driver.sh
+/data/shconfig/bin/upload_image.sh <project> <branch>
+    #+end_src
+
+For example, run =upload_image.sh FIMXE main= to update all images for the =main= branch.
+
+Once the images are on GitHub, you can [[#deploy_image][deploy them]] per the above.
+
+** Adding disk space to a virtual machine (VirtualBox only)
+
+Q. How can I increase the disk size of a VM? https://askubuntu.com/a/1015068
+
+    #+begin_src sh
+    vagrant plugin install vagrant-disksize
+    #+end_src
+
+and then add to the config:
+
+    #+begin_src vagrantfile
+    db.disksize.size = '100GB'
+    #+end_src
+
+When you =halt= and then =up= the VM, it should have the new amount of space.
+
+
+* How this project works
+
+shconfig reads "source" templates from the =src/= directory, and renders these templates into =run/= using the variables in =vars/=.
+
+shconfig also...
+
+  - auto-updates itself via git pull
+  - reads environment variables
+  - populates =vars/secrets.json= based on lastpass
+
+** High level flow
+
+1. =driver.sh= is run to update shconfig2 from git. This code is as short as possible to minimize the chance of breaking it on update. =driver.sh= then calls...
+2. =driver2.sh=. This does the bulk of the setup, prior to rendering =src/= into =run/=. When done, it calls...
+3. =run/driver3.sh=. This is the rendered version of =src/driver3.sh=. This does the actual useful configuration.
+
+** Variable namespaces
+
+Variables defined in =vars/= are named with the prefix of the file they're in. For example if =vars/abc.json= contained:
+
+    #+begin_src json
+    {'a': 1}
+    #+end_src
+	
+In configuration, this variable would be named =abc_a=. Any files in the directory =src/=, such as =src/example.sh=, that have the string ={{abc_a}}= will be "compiled" by driver into the =run/= directory; in this example, =run/example.sh= would then have =1= wherever ={{abc_a}}= was.
+
+
+** Environment variables
+*** =env.sh=
+
+These can be set in a file called =env.sh=; if this filename exists, it will be sourced when =driver.sh= is run.
+
+  - =$SHCONFIG_APP_TYPE=: =web=, =db=, or =wp=
+  - =$SHCONFIG_ENV_TYPE=: =dev=, =stg=, or =prd=
+  - =$SHCONFIG_EMAIL=: who should get emails for this stuff
+  - =$SHCONFIG_CRONEMAIL=: who should receive cron emails
+  - =$SHCONFIG_DBSERVER=: fully qualified DNS name of the database server
+  - =$SHCONFIG_WEBSERVER=: fully qualified DNS name of the web server *as used by the database server's reverse DNS*. This is used in MySQL access grants.
+  - =$SHCONFIG_WPSERVER=: fully qualified DNS name of the WordPress server. This is used in MySQL access grants.
+
+In a development environment, if your vagrant machines do not use =192.168.100.101= .. =192.168.100.103=, you can set their IPs:
+
+  - =$SHCONFIG_DBSERVER_IP=
+  - =$SHCONFIG_WEBSERVER_IP=
+  - =$SHCONFIG_DPSERVER_IP=
+
+
+*** Other (optional) variables
+
+  - =$FORCE_LASTPASS=: run lastpass even in =dev=
+  - =$SKIP_LASTPASS=: don't run lastpass
+  - =$SKIP_GITPULL=: don't =git pull= shconfig before running
+  - =$DEBUG=: set if you want to run with debug logging
+
+For example, you can run
+
+    #+begin_src sh
+    SKIP_LASTPASS=1 DEBUG=1 ./driver.sh
+    #+end_src
+
+to specify you want to skip running LastPass and you want debug-level messages.
+
+** Special =vars/= files
+
+Special files:
+
+  - The file =shconfig.json= is built through the above environment variables.
+  - The file =driver.json= is built by =driver.sh=.
+  - The file =secrets.json= is built by =lastpass.sh=.
+
+
+* Design principles
+** Idempotency
+
+A fundamental design of =shconfig= is that you should be able to run =driver.sh= many times without anything bad happening. For example, you can run =driver.sh= 10 times and RT will only be installed once.
+
+** shconfig configuration vs. other project configuration
+
+shconfig should be the only project that knows passwords or server configuration, such as directory paths.
+
+Other projects should _not_ have...
+
+  -  passwords
+  -  absolute URLs
+  -  absolute paths
+  -  references to hosts or ports
+
+A common pattern is for shconfig to drop a =env.php= file in the root directory of a project; this file can have environment-specific data that the project can use.
+
+** Keep things simple
+
+Although it's ironic to say this due to the size of this project, a key philosophy has been to keep things simple through readable shell scripts and simple templating. This is why everything's written in Shell script rather than, say, Puppet config.
+
+* History
+
+=shconfig= was written in 2019 by John Borwick to configure CentOS 7 machines. It did not use containerization; instead, there were many hacks to install RPMs without root access.
+
+The current version of =shconfig= is largely a rewrite. In 2023 John Borwick updated the environment to use Ubuntu 22.04 machines and podman.

@@ -1,7 +1,5 @@
 {
-    "user": "apache",
+    "conf_dir": "/etc/apache2/sites-enabled",
     "group": "vagrant",
-    "conf_dir": "/etc/httpd/conf.d",
-    "apxs": "/usr/bin/apxs",
-    "module_dir": "/data/httpd_modules"
+    "user": "www-data"
 }
